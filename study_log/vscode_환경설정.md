@@ -58,16 +58,18 @@ test 코드를 만들어 기능 개발을 하는데 사용하고 싶다.
 
 ---
 venv 구성은 다음과 같이 한다
+
+초기 가상환경 생성(처음만 하면 된다)
 ```shell
 python -m venv .venv
 ```
 
-venv 활성화
+venv 활성화(가상환경을 사용할때마다 실행해야 한다)
 ```shell
 source .venv/scripts/activate
 ```
 
-venv 비활성화
+venv 비활성화(가상환경에서 벗어날때 실행한다)
 ```shell
 deactivate
 ```
