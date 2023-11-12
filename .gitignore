@@ -18,6 +18,8 @@ tests/*.txt
 .idea/
 .tox/
 .nox/
+.vscode/
+open_sw/
 
 # python venv management tools
 Pipfile
