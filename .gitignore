@@ -19,6 +19,7 @@ tests/*.txt
 .tox/
 .nox/
 .vscode/
+.venv/
 open_sw/
 
 # python venv management tools
