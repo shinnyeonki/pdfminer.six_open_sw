@@ -37,7 +37,7 @@ test 코드를 만들어 기능 개발을 하는데 사용하고 싶다.
 
 
 ## 실제 실행
-.vscode 폴더를 만들고 내부에 setting.json 파일을 만든다.
+.vscode 폴더를 만들고 내부에 settings.json 파일을 만든다.
 
 ```json
 {
