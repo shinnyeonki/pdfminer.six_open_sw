@@ -1,5 +1,5 @@
 setup.py (신년기)
-MANIFEST.in
+MANIFEST.in(강민혁)
 mypy.ini
 .flake8
 /doc
