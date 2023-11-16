@@ -105,33 +105,44 @@ class ImageWriter:
         filters = image.stream.get_filters()
 
         if len(filters) == 1 and filters[0][0] in LITERALS_DCT_DECODE:
+            print("1")
             name = self._save_jpeg(image)
 
         elif len(filters) == 1 and filters[0][0] in LITERALS_JPX_DECODE:
+            print("2")
             name = self._save_jpeg2000(image)
 
         elif self._is_jbig2_iamge(image):
+            print("3")
             name = self._save_jbig2(image)
 
         elif image.bits == 1:
+            print("4")
             name = self._save_bmp(image, width, height, (width + 7) // 8, image.bits)
 
         elif image.bits == 8 and LITERAL_DEVICE_RGB in image.colorspace:
+            print("5")
             name = self._save_bmp(image, width, height, width * 3, image.bits * 3)
 
         elif image.bits == 8 and LITERAL_DEVICE_GRAY in image.colorspace:
+            print("6")
             name = self._save_bmp(image, width, height, width, image.bits)
 
         elif len(filters) == 1 and filters[0][0] in LITERALS_FLATE_DECODE:
+            print("7")
             name = self._save_bytes(image)
 
         else:
+            print("8")
             name = self._save_raw(image)
 
         return name
 
     def _save_jpeg(self, image: LTImage) -> str:
         """Save a JPEG encoded image"""
+
+        print("save jpeg")
+
         raw_data = image.stream.get_rawdata()
         assert raw_data is not None
 
@@ -157,6 +168,8 @@ class ImageWriter:
         """Save a JPEG 2000 encoded image"""
         raw_data = image.stream.get_rawdata()
         assert raw_data is not None
+
+        print("save jpeg2000")
 
         name, path = self._create_unique_image_name(image, ".jp2")
         with open(path, "wb") as fp:
@@ -207,6 +220,9 @@ class ImageWriter:
         self, image: LTImage, width: int, height: int, bytes_per_line: int, bits: int
     ) -> str:
         """Save a BMP encoded image"""
+
+        print("save bmp")
+        
         name, path = self._create_unique_image_name(image, ".bmp")
         with open(path, "wb") as fp:
             bmp = BMPWriter(fp, bits, width, height)
