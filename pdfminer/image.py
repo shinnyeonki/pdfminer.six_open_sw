@@ -212,81 +212,110 @@ class ImageWriter:
 
 
     def _save_jpeg2000(self, image: LTImage) -> str:
-        """Save a JPEG 2000 encoded image"""
+        """JPEG 2000 인코딩된 이미지를 저장"""
+        # 이미지에서 raw 데이터를 추출
         raw_data = image.stream.get_rawdata()
         assert raw_data is not None
 
+        # 고유한 이미지 이름 생성
         name, path = self._create_unique_image_name(image, ".jp2")
         with open(path, "wb") as fp:
+            # PIL 라이브러리를 import 시도
             try:
                 from PIL import Image  # type: ignore[import]
             except ImportError:
+                # PIL 라이브러리가 없으면 오류 메시지를 출력
                 raise ImportError(PIL_ERROR_MESSAGE)
 
-            # if we just write the raw data, most image programs
-            # that I have tried cannot open the file. However,
-            # open and saving with PIL produces a file that
-            # seems to be easily opened by other programs
+            # raw 데이터를 바로 쓰는 대신, PIL 라이브러리를 사용하여 이미지를 열고 JPEG 2000 형식으로 다시 저장
+            # 이렇게 하면 다른 프로그램에서도 쉽게 열 수 있는 파일을 생성할 수 있다.
             ifp = BytesIO(raw_data)
             i = Image.open(ifp)
             i.save(fp, "JPEG2000")
+
+        # 저장된 이미지 파일의 이름을 반환
         return name
 
+
     def _save_jbig2(self, image: LTImage) -> str:
-        """Save a JBIG2 encoded image"""
+        #"""JBIG2 인코딩된 이미지 저장"""
+        # 고유한 이미지 이름 생성
         name, path = self._create_unique_image_name(image, ".jb2")
         with open(path, "wb") as fp:
+            # 바이트 스트림 생성
             input_stream = BytesIO()
 
+            # JBIG2Globals를 찾아서 global_streams에 추가
             global_streams = []
             filters = image.stream.get_filters()
             for filter_name, params in filters:
                 if filter_name in LITERALS_JBIG2_DECODE:
                     global_streams.append(params["JBIG2Globals"].resolve())
 
+            # JBIG2 이미지에는 하나의 JBIG2Globals만 연결되어야 함
             if len(global_streams) > 1:
                 msg = (
                     "There should never be more than one JBIG2Globals "
                     "associated with a JBIG2 embedded image"
                 )
                 raise ValueError(msg)
+            
+            # JBIG2Globals가 있으면 스트림에 쓰기
             if len(global_streams) == 1:
                 input_stream.write(global_streams[0].get_data().rstrip(b"\n"))
+            # 이미지 데이터를 스트림에 쓰기
             input_stream.write(image.stream.get_data())
             input_stream.seek(0)
+
+            # JBIG2StreamReader로 스트림을 읽고 세그먼트를 가져옴
             reader = JBIG2StreamReader(input_stream)
             segments = reader.get_segments()
 
+            # JBIG2StreamWriter를 사용하여 세그먼트를 파일에 쓰기
             writer = JBIG2StreamWriter(fp)
             writer.write_file(segments)
         return name
 
+
     def _save_bmp(
-        self, image: LTImage, width: int, height: int, bytes_per_line: int, bits: int
-    ) -> str:
-        """Save a BMP encoded image"""
+        self, image: LTImage, width: int, height: int, bytes_per_line: int, bits: int) -> str:
+        """BMP 인코딩된 이미지 저장"""
+        # 고유한 이미지 이름 생성
         name, path = self._create_unique_image_name(image, ".bmp")
         with open(path, "wb") as fp:
+            # BMPWriter 객체 생성
             bmp = BMPWriter(fp, bits, width, height)
+
+            # 이미지 데이터 가져오기
             data = image.stream.get_data()
+
+            # 이미지의 각 라인을 BMP 파일에 쓰기
             i = 0
             for y in range(height):
                 bmp.write_line(y, data[i : i + bytes_per_line])
                 i += bytes_per_line
+        # 저장된 이미지 파일의 이름을 반환
         return name
 
+
     def _save_bytes(self, image: LTImage) -> str:
-        """Save an image without encoding, just bytes"""
+    #"""인코딩 없이 바이트 형태로 이미지 저장"""
+    # 고유한 이미지 이름 생성
         name, path = self._create_unique_image_name(image, ".jpg")
         width, height = image.srcsize
+
+        # 채널 수 계산 (이미지 데이터의 길이 / 너비 / 높이 / (비트 수 / 8))
         channels = len(image.stream.get_data()) / width / height / (image.bits / 8)
         with open(path, "wb") as fp:
+            # PIL 라이브러리 import 시도
             try:
                 from PIL import Image  # type: ignore[import]
                 from PIL import ImageOps
             except ImportError:
+                # PIL 라이브러리가 없으면 오류 메시지를 출력
                 raise ImportError(PIL_ERROR_MESSAGE)
 
+            # 이미지 비트 수에 따라 모드 결정
             mode: Literal["1", "L", "RGB", "CMYK"]
             if image.bits == 1:
                 mode = "1"
@@ -297,25 +326,35 @@ class ImageWriter:
             elif image.bits == 8 and channels == 4:
                 mode = "CMYK"
 
+            # 바이트 데이터를 PIL Image 객체로 변환
             img = Image.frombytes(mode, image.srcsize, image.stream.get_data(), "raw")
             if mode == "L":
                 img = ImageOps.invert(img)
 
+            # 이미지를 파일에 저장
             img.save(fp)
 
+        # 저장된 이미지 파일의 이름을 반환
         return name
 
+
+    # 알 수 없는 인코딩의 이미지 저장
     def _save_raw(self, image: LTImage) -> str:
-        """Save an image with unknown encoding"""
+       
+        # 확장자 생성
         ext = ".%d.%dx%d.img" % (image.bits, image.srcsize[0], image.srcsize[1])
+        # 고유한 이미지 이름 생성
         name, path = self._create_unique_image_name(image, ext)
 
+        # 이미지 데이터를 파일에 쓰기
         with open(path, "wb") as fp:
             fp.write(image.stream.get_data())
+        # 저장된 이미지 파일의 이름을 반환
         return name
 
     @staticmethod
     def _is_jbig2_iamge(image: LTImage) -> bool:
+        #이미지가 JBIG2 형식인지 판별
         filters = image.stream.get_filters()
         for filter_name, params in filters:
             if filter_name in LITERALS_JBIG2_DECODE:
@@ -323,9 +362,12 @@ class ImageWriter:
         return False
 
     def _create_unique_image_name(self, image: LTImage, ext: str) -> Tuple[str, str]:
+        #고유한 이미지 이름 생성
         name = image.name + ext
         path = os.path.join(self.outdir, name)
         img_index = 0
+
+        # 동일한 이름의 파일이 이미 존재하면 인덱스를 추가하여 고유한 이름 생성
         while os.path.exists(path):
             name = "%s.%d%s" % (image.name, img_index, ext)
             path = os.path.join(self.outdir, name)
