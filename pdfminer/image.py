@@ -35,21 +35,32 @@ def align32(x: int) -> int:
 
 class BMPWriter:
     def __init__(self, fp: BinaryIO, bits: int, width: int, height: int) -> None:
-        self.fp = fp
-        self.bits = bits
-        self.width = width
-        self.height = height
+        # BMP 파일을 생성하기 위한 초기 설정
+        self.fp = fp  # 파일 포인터
+        self.bits = bits  # 비트 수
+        self.width = width  # 이미지의 너비
+        self.height = height  # 이미지의 높이
+        
+        # 비트 수에 따른 컬러 테이블 크기 설정
         if bits == 1:
-            ncols = 2
+            ncols = 2  # 흑백
         elif bits == 8:
-            ncols = 256
+            ncols = 256  # 회색조
         elif bits == 24:
-            ncols = 0
+            ncols = 0  # 풀 컬러
         else:
-            raise ValueError(bits)
+            raise ValueError(bits)  # 1, 8, 24 외의 값은 오류
+        
+        # 한 줄당 데이터 크기 계산 (4바이트 경계로 정렬)
         self.linesize = align32((self.width * self.bits + 7) // 8)
+        
+        # 전체 데이터 크기 계산
         self.datasize = self.linesize * self.height
+        
+        # 헤더 크기 계산 (14: BMP 헤더, 40: DIB 헤더, ncols * 4: 컬러 테이블)
         headersize = 14 + 40 + ncols * 4
+        
+        # DIB 헤더 생성
         info = struct.pack(
             "<IiiHHIIIIII",
             40,
@@ -64,25 +75,34 @@ class BMPWriter:
             ncols,
             0,
         )
-        assert len(info) == 40, str(len(info))
+        assert len(info) == 40, str(len(info))  # DIB 헤더의 크기는 40바이트여야 함
+        
+        # BMP 헤더 생성
         header = struct.pack(
             "<ccIHHI", b"B", b"M", headersize + self.datasize, 0, 0, headersize
         )
-        assert len(header) == 14, str(len(header))
+        assert len(header) == 14, str(len(header))  # BMP 헤더의 크기는 14바이트여야 함
+        
+        # 헤더와 DIB 헤더를 파일에 쓰기
         self.fp.write(header)
         self.fp.write(info)
+        
+        # 컬러 테이블 생성 및 파일에 쓰기
         if ncols == 2:
-            # B&W color table
+            # 흑백 컬러 테이블
             for i in (0, 255):
                 self.fp.write(struct.pack("BBBx", i, i, i))
         elif ncols == 256:
-            # grayscale color table
+            # 회색조 컬러 테이블
             for i in range(256):
                 self.fp.write(struct.pack("BBBx", i, i, i))
+        
+        # 데이터의 시작 위치와 종료 위치 계산
         self.pos0 = self.fp.tell()
         self.pos1 = self.pos0 + self.datasize
 
     def write_line(self, y: int, data: bytes) -> None:
+        # 지정된 위치에 데이터 쓰기 (BMP는 이미지 데이터를 아래에서 위로 쓴다)
         self.fp.seek(self.pos1 - (y + 1) * self.linesize)
         self.fp.write(data)
 
@@ -94,64 +114,102 @@ class ImageWriter:
     """
 
     def __init__(self, outdir: str) -> None:
+        # 출력 디렉토리 설정
         self.outdir = outdir
+        # 출력 디렉토리가 존재하지 않으면 생성
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
     def export_image(self, image: LTImage) -> str:
         """Save an LTImage to disk"""
+        
+        # 이미지의 너비와 높이를 가져옴
         (width, height) = image.srcsize
 
+        # 이미지의 필터(압축 방식)를 가져옴
         filters = image.stream.get_filters()
 
+        # 필터가 하나이고, 그 필터가 DCT 디코딩을 사용하는 경우 JPEG으로 저장
         if len(filters) == 1 and filters[0][0] in LITERALS_DCT_DECODE:
             name = self._save_jpeg(image)
 
+        # 필터가 하나이고, 그 필터가 JPX 디코딩을 사용하는 경우 JPEG 2000으로 저장
         elif len(filters) == 1 and filters[0][0] in LITERALS_JPX_DECODE:
             name = self._save_jpeg2000(image)
 
+        # 이미지가 JBIG2 형식인 경우 JBIG2로 저장
         elif self._is_jbig2_iamge(image):
             name = self._save_jbig2(image)
 
+        # 이미지가 1비트 단위인 경우 BMP로 저장
         elif image.bits == 1:
             name = self._save_bmp(image, width, height, (width + 7) // 8, image.bits)
 
+        # 이미지가 8비트 단위이고 RGB 컬러스페이스를 사용하는 경우 BMP로 저장
         elif image.bits == 8 and LITERAL_DEVICE_RGB in image.colorspace:
             name = self._save_bmp(image, width, height, width * 3, image.bits * 3)
 
+        # 이미지가 8비트 단위이고 그레이스케일 컬러스페이스를 사용하는 경우 BMP로 저장
         elif image.bits == 8 and LITERAL_DEVICE_GRAY in image.colorspace:
             name = self._save_bmp(image, width, height, width, image.bits)
 
+        # 필터가 하나이고, 그 필터가 Flate 디코딩을 사용하는 경우 바이트로 저장
         elif len(filters) == 1 and filters[0][0] in LITERALS_FLATE_DECODE:
             name = self._save_bytes(image)
 
+        # 그 외의 경우 raw 데이터로 저장
         else:
             name = self._save_raw(image)
 
+        # 저장된 이미지 파일의 이름을 반환
         return name
 
+
     def _save_jpeg(self, image: LTImage) -> str:
-        """Save a JPEG encoded image"""
+    # JPEG 인코딩된 이미지를 저장
+    #"""Save a JPEG encoded image"""
+    
+    # 이미지에서 raw 데이터를 추출
         raw_data = image.stream.get_rawdata()
+        
+        # raw 데이터가 None이 아님을 확인
         assert raw_data is not None
 
+        # 이미지 파일의 고유한 이름을 생성
         name, path = self._create_unique_image_name(image, ".jpg")
+        
+        # 파일을 쓰기 모드로 열고
         with open(path, "wb") as fp:
+            # 이미지의 컬러스페이스가 CMYK인 경우
             if LITERAL_DEVICE_CMYK in image.colorspace:
+                # PIL 라이브러리를 import 시도
                 try:
                     from PIL import Image, ImageChops  # type: ignore[import]
                 except ImportError:
+                    # PIL 라이브러리가 없으면 오류 메시지를 출력
                     raise ImportError(PIL_ERROR_MESSAGE)
 
+                # raw 데이터를 BytesIO 객체로 변환
                 ifp = BytesIO(raw_data)
+                
+                # 이미지를 열고
                 i = Image.open(ifp)
+                
+                # 이미지를 반전시키고
                 i = ImageChops.invert(i)
+                
+                # 이미지를 RGB로 변환한 후
                 i = i.convert("RGB")
+                
+                # 이미지를 JPEG 형식으로 저장
                 i.save(fp, "JPEG")
             else:
+                # 이미지의 컬러스페이스가 CMYK가 아닌 경우, raw 데이터를 그대로 파일에 쓰기
                 fp.write(raw_data)
 
+        # 저장된 이미지 파일의 이름을 반환
         return name
+
 
     def _save_jpeg2000(self, image: LTImage) -> str:
         """Save a JPEG 2000 encoded image"""
