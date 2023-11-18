@@ -1,1 +1,89 @@
-test
+# 공개SW실습
+# mypy.ini 파일 분석
+
+# 공개SW실무
+# mypy.ini 파일 분석/공부
+
+ mypy 설정 파일이다. 이 파일은 mypy 도구를 사용하여 파이썬 코드읭 정적 타입 검사를 수행할 때 적용되는 설정들을 지정하는 용도로 사용된다. mypy는 파이썬 코드에서, ‘타입 관련 오류’를 예방하기 위한 도구이다. 코드 타입의 안정성을 향상시킨다. 이 파일은 동작 방식을 세부적으로 조정하기 위해 사용된다.
+ [mypy] 섹션은 다양한 설정들을 포함한다. 예를 들어서, ‘disallow_any_generics = True’라는 코드는 “‘제네릭 타입’을 사용하지 않도록 강제한다”는 의미이다.
+ 이 파일을 사용하여 mypy를 실행하면, 프로젝트의 소스 코드에서 발생할 수 있는 타입 관련 오류를 발견할 수 있다. 그리고 그 오류를 수정할 수 있다. 결과적으로 코드의 타입 안정성을 개선한다. 또한 더 안정적인 개발을 돕는다.
+
+[mypy]
+
+warn_unused_configs = True                   
+# 사용되지 않는 mypy 설정에 대해 경고를 발생시킨다.
+
+disallow_any_generics = True
+# 제네릭 타입을 사용하지 않도록 강제한다.
+# 제네릭 타입 설명 (https://hides.kr/1106)
+
+disallow_subclassing_any = True          
+# Any 타입을 상속하는 것을 허용하지 않습니다.
+# any 함수는, ‘인자로 받은 요소’ 중 하나라도 참이면 True를 돌려준다. 모든 요소가 거짓인 경우에만 False를 돌려준다.
+# any 함수 (https://velog.io/@kho5420/Python-%ED%8C%8C%EC%9D%B4%EC%8D%AC-any-%EC%99%80-all-%EC%96%B8%EC%A0%9C-%EC%96%B4%EB%96%BB%EA%B2%8C)
+
+disallow_untyped_calls = True               
+# 타입 어노테이션이 없는 함수 호출을 허용하지 않는다. 
+# ‘타입 어노테이션’ = ‘타입 힌트’
+# https://www.daleseo.com/python-type-annotations/ (타입 어노테이션)
+
+disallow_incomplete_defs = True             
+# 타입 어노테이션이 불완전한 정의를 허용하지 않는다.
+# https://www.daleseo.com/python-type-annotations/ (타입 어노테이션)
+
+disallow_untyped_decorators = True          
+# 타입 어노테이션이 없는 데코레이터 사용을 허용하지 않는다.
+# https://dojang.io/mod/page/view.php?id=2427 (파이썬 데코레이터)
+
+no_implicit_optional = True                 
+# 암묵적으로 옵셔널한 타입을 허용하지 않는다.
+
+warn_redundant_casts = True                 
+# 중복된 형변환에 대한 경고를 발생시킨다.
+
+warn_return_any = True                      
+# 반환 타입이 명시되지 않은 경우 경고를 발생시킨다.
+
+no_implicit_reexport = True                 
+# 암묵적으로 모듈을 내보내는 것을 허용하지 않는다.
+
+strict_equality = True                      
+# 엄격한 동등성 검사를 활성화한다.
+# https://tobee.tistory.com/entry/Python%EC%97%90%EC%84%9C-%EB%AC%B8%EC%9E%90%EC%97%B4%EC%9D%84-%EB%B9%84%EA%B5%90%ED%95%98%EB%8A%94-%EB%B0%A9%EB%B2%95-%EA%B0%99%EC%9D%8C%EA%B3%BC-%EB%8F%99%EC%9D%BC%EC%84%B1
+
+
+# This seems impossible to turn on in a version-independent manner. (버전 독립적인 방식으로 켜는 것은 불가능한 것 같습니다.)
+warn_unused_ignores = False                 
+# 사용되지 않는 무시 경고를 비활성화한다.
+
+[mypy-pdfminer.*]
+disallow_untyped_defs = True                
+# 타입 어노테이션이 없는 정의를 허용하지 않는다.
+
+[mypy-cryptography.hazmat.*]
+ignore_missing_imports = True               
+# 누락된 import를 무시한다.
+
+[mypy-pytest.*]
+ignore_missing_imports = True               
+# 누락된 import를 무시한다.
+
+[mypy-setuptools.*]
+ignore_missing_imports = True               
+# 누락된 import를 무시한다.
+
+[mypy-nox.*]
+ignore_missing_imports = True               
+# 누락된 import를 무시한다.
+
+[mypy-charset_normalizer.*]
+ignore_missing_imports = True               
+# 누락된 import를 무시한다.
+
+
+
+[참고 자료]
+ - https://hides.kr/1106 (파이썬 - 제네릭 타입)
+ - https://velog.io/@kho5420/Python-%ED%8C%8C%EC%9D%B4%EC%8D%AC-any-%EC%99%80-all-%EC%96%B8%EC%A0%9C-%EC%96%B4%EB%96%BB%EA%B2%8C (파이썬 - any 타입)
+ - https://www.daleseo.com/python-type-annotations/ (타입 어노테이션 / 타입 힌트)
+ - https://dojang.io/mod/page/view.php?id=2427 (파이썬 데코레이터)
