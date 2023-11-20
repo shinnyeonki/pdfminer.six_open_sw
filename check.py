@@ -1,4 +1,6 @@
-from pdfminer.high_level import extract_text
+from pdfminer import word
 
-text = extract_text('samples/simple1.pdf')
-print(text)
+
+pdf_file = '/Users/shinnk/source/pdfminer.six_open_sw/samples/class/linux-2.pdf'
+doc_file = '/Users/shinnk/source/pdfminer.six_open_sw/test.docx'
+word.pdfToDocx(pdf_file, doc_file)
